@@ -11,7 +11,7 @@ const NewPlayer = require("../../models/NewPlayer");
 // @route   GET api/league/newplayers
 // @desc    Get new players for the week
 // @access  Private
-router.get("/newplayers", async (req, res) => {
+router.get("/newplayers", auth, async (req, res) => {
   try {
     const newPlayers = await NewPlayer.find();
     res.send(newPlayers);
