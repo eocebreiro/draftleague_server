@@ -6,6 +6,20 @@ const mongoose = require("mongoose");
 //const Profile = require("../../models/Profile");
 //const User = require("../../models/User");
 const League = require("../../models/Leagues");
+const NewPlayer = require("../../models/NewPlayer");
+
+// @route   GET api/league/newplayers
+// @desc    Get new players for the week
+// @access  Private
+router.get("/newplayers", async (req, res) => {
+  try {
+    const newPlayers = await NewPlayer.find();
+    res.send(newPlayers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
 
 // @route   GET api/league/:leagueId
 // @desc    Get users league
@@ -31,5 +45,4 @@ router.get("/:leagueId", auth, async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
-
 module.exports = router;
