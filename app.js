@@ -10,6 +10,7 @@ const userRoutes = require("./routes/api/users");
 const authRoutes = require("./routes/api/auth");
 const profileRoutes = require("./routes/api/profile");
 const leagueRoutes = require("./routes/api/league");
+const dataRoutes = require("./routes/api/data");
 
 //Init Middleware
 app.use(morgan("dev"));
@@ -35,6 +36,7 @@ app.use((req, res, next) => {
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/data", dataRoutes);
 app.use("/api/league", leagueRoutes);
 
 // Error 404

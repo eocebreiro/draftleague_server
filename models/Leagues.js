@@ -48,6 +48,9 @@ const LeagueSchema = new mongoose.Schema({
     default: shortid.generate,
     index: { unique: true },
   },
+
+  playerList: [],
+
   date: {
     type: Date,
     default: Date.now,
