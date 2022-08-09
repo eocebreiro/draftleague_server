@@ -2,27 +2,93 @@ const mongoose = require("mongoose");
 
 const dataSchema = new mongoose.Schema(
   {
-    minutes: Number,
-    goals: Number,
-    assists: Number,
-    cleansheet: Number,
-    pen_saved: Number,
-    pen_won: Number,
-    pen_missed: Number,
-    goals_conceded: Number,
-    team_conceded: Number,
-    saves: Number,
-    yellow_card: Number,
-    red_card: Number,
-    own_goal: Number,
-    tackles: Number,
-    passes: Number,
-    key_passes: Number,
-    crosses_accuracy: Number,
-    clearance: Number,
-    blocks: Number,
-    shots: Number,
-    fouls_drawn: Number,
+    week: Number,
+    fixture_id: Number,
+    played: Boolean,
+    home: Boolean,
+    opponent_name: String,
+    opponent_short_code: String,
+    opponent_logo_path: String,
+    minutes: {
+      data: Number,
+      score: Number,
+    },
+    goals: {
+      data: Number,
+      score: Number,
+    },
+    assists: {
+      data: Number,
+      score: Number,
+    },
+    cleansheet: {
+      data: Number,
+      score: Number,
+    },
+    pen_saved: {
+      data: Number,
+      score: Number,
+    },
+    pen_won: {
+      data: Number,
+      score: Number,
+    },
+    pen_missed: {
+      data: Number,
+      score: Number,
+    },
+    goals_conceded: {
+      data: Number,
+      score: Number,
+    },
+    saves: {
+      data: Number,
+      score: Number,
+    },
+    yellow_card: {
+      data: Number,
+      score: Number,
+    },
+    red_card: {
+      data: Number,
+      score: Number,
+    },
+    own_goal: {
+      data: Number,
+      score: Number,
+    },
+    tackles: {
+      data: Number,
+      score: Number,
+    },
+    passes: {
+      data: Number,
+      score: Number,
+    },
+    key_passes: {
+      data: Number,
+      score: Number,
+    },
+    crosses_accuracy: {
+      data: Number,
+      score: Number,
+    },
+    clearance: {
+      data: Number,
+      score: Number,
+    },
+    blocks: {
+      data: Number,
+      score: Number,
+    },
+    shots: {
+      data: Number,
+      score: Number,
+    },
+    fouls_drawn: {
+      data: Number,
+      score: Number,
+    },
   },
   { _id: false }
 );
@@ -49,6 +115,6 @@ const PlayerSchema = new mongoose.Schema({
 });
 
 module.exports = {
-  NewPlayer: mongoose.model("newplayer", PlayerSchema),
-  Player: mongoose.model("currentplayer", PlayerSchema),
+  NewPlayer: mongoose.model("newplayers", PlayerSchema),
+  Player: mongoose.model("currentplayers", PlayerSchema),
 };

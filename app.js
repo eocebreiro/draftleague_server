@@ -10,6 +10,7 @@ const userRoutes = require("./routes/api/users");
 const authRoutes = require("./routes/api/auth");
 const profileRoutes = require("./routes/api/profile");
 const leagueRoutes = require("./routes/api/league");
+const playersRoutes = require("./routes/api/players");
 const fixturesRoutes = require("./routes/api/fixtures");
 const dataRoutes = require("./routes/api/data");
 
@@ -39,6 +40,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/fixtures", fixturesRoutes);
 app.use("/api/league", leagueRoutes);
+app.use("/api/players", playersRoutes);
 app.use("/api/data", dataRoutes);
 // Error 404
 app.use((req, res, next) => {

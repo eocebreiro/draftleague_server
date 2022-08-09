@@ -19,10 +19,22 @@ const partSchema = new mongoose.Schema(
       ref: "user",
     },
     date: { type: Date, defualt: Date.now },
+    teamname: { type: String },
     team: [teamSchema],
   },
   { _id: false }
 );
+const dataSchema = new mongoose.Schema({
+  winner_team_id: Number,
+  team_one: {},
+  team_two: {},
+  standings: {},
+});
+const scheduleSchema = new mongoose.Schema({
+  week: Number,
+  active: Boolean,
+  data: [dataSchema],
+});
 
 const LeagueSchema = new mongoose.Schema({
   leaguename: {
@@ -48,6 +60,20 @@ const LeagueSchema = new mongoose.Schema({
     default: shortid.generate,
     index: { unique: true },
   },
+
+  participantsFull: {
+    type: Boolean,
+    default: false,
+  },
+  draftComplete: {
+    type: Boolean,
+    default: false,
+  },
+  activeWeek: {
+    type: Number,
+    default: null,
+  },
+  schedule: [scheduleSchema],
 
   playerList: [],
 

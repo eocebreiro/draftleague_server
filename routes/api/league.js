@@ -7,19 +7,7 @@ const League = require("../../models/Leagues");
 const NewPlayer = require("../../models/Player").NewPlayer;
 const Player = require("../../models/Player").Player;
 const Profile = require("../../models/Profile");
-
-// @route   GET api/league/newplayers
-// @desc    Get new players for the week
-// @access  Private
-router.get("/newplayers", auth, async (req, res) => {
-  try {
-    const Players = await NewPlayer.find();
-    return res.json(Players);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server Error");
-  }
-});
+const Fixtures = require("../../models/Fixtures");
 
 // @route   POST api/league/create
 // @desc    Create a new league
@@ -51,20 +39,19 @@ router.post(
     if (numOfParticipants) leagueFields.numOfParticipants = numOfParticipants; // create new league
 
     // Get the list of players
-    try {
-      let players = await Player.find();
-      leagueFields.playerList = players;
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send("Server Error");
-    }
+
+    leagueFields.playerList = [];
 
     // Add leage to profile
     try {
       let profile = await Profile.findOne({ user: req.user.id });
 
       league = new League(leagueFields);
-      league.participants.push({ user: req.user.id, date: Date.now() });
+      league.participants.push({
+        user: req.user.id,
+        teamname: profile.teamname,
+        date: Date.now(),
+      });
       await league.save();
 
       profile.leagues.push({ league: league.id, date: Date.now() });
@@ -96,9 +83,7 @@ router.post(
 
       if (league) {
         //Check to see if user is already in the league
-        console.log(profile.user);
         for (let i = 0; i < league.participants.length; i++) {
-          console.log(league.participants[i].user);
           if (profile.user.equals(league.participants[i].user)) {
             return res
               .status(400)
@@ -108,10 +93,100 @@ router.post(
         //Check to see if there is room for player to join the league
         if (league.participants.length < league.numOfParticipants) {
           profile.leagues.push({ league: league.id, date: Date.now() });
-          console.log(profile);
           await profile.save();
-          league.participants.push({ user: req.user.id, date: Date.now() });
+          league.participants.push({
+            user: req.user.id,
+            teamname: profile.teamname,
+            date: Date.now(),
+          });
+
+          // Check to see if the league is full after adding the participant
+          // If it is full, start the league
+          if (league.participants.length === league.numOfParticipants) {
+            league.participantsFull = true;
+            // Build the schedule
+            let schedule = [];
+            let half1 = [];
+            let half2 = [];
+            let partArray = league.participants
+              .map((value) => ({
+                value,
+                sort: Math.random(),
+              }))
+              .sort((a, b) => a.sort - b.sort)
+              .map(({ value }) => value);
+
+            //split array
+            for (let i = 0; i < partArray.length; i++) {
+              if (i % 2 == 0) {
+                half1.push(partArray[i]);
+              } else {
+                half2.push(partArray[i]);
+              }
+            }
+            console.log(half2.length);
+
+            // Get number of weeks left and current active week +1 (matches start the following week)
+            let fixtures = await Fixtures.find();
+            let numofWeeks = fixtures.length;
+            let activeWeek;
+            for (let i = 0; i < fixtures.length; i++) {
+              if (fixtures[i].active) {
+                activeWeek = fixtures[i].week + 1;
+                break;
+              }
+            }
+            // Assign scheudle
+            console.log("num of weeks");
+            console.log(numofWeeks);
+            console.log("actjive weeks");
+            console.log(activeWeek);
+
+            // DEV MODE FIX THIS NEXT change 29 to numOfWeeks
+            for (let i = activeWeek; i <= 29; i++) {
+              let data = [];
+              for (let j = 0; j < half1.length; j++) {
+                data.push({
+                  winner_team_id: null,
+                  team_one: {
+                    user_id: half1[j].user,
+                    teamname: half1[j].teamname,
+                    logo_path: null,
+                    score: null,
+                  },
+                  team_two: {
+                    user_id: half2[j].user,
+                    teamname: half2[j].teamname,
+                    logo_path: null,
+                    score: null,
+                  },
+                  standings: {
+                    team_one_position: null,
+                    team_two_position: null,
+                  },
+                });
+                console.log("test3");
+              }
+
+              // Adjust array for next schedule
+              half2.push(half1[half1.length - 1]); // add the last one of half1 to half2
+              half1.splice(1, 0, half2[0]); // Add the first one of half2 under the first one of half1
+              half2.splice(0, 1); // Remove the first one in half2
+              half1.splice(half1.length - 1, 1); // Remove last one in half1
+
+              schedule.push({
+                week: i,
+                active: false,
+                data: data,
+              });
+            }
+
+            console.log(schedule);
+            league.schedule = schedule;
+          }
+
           await league.save();
+
           return res.json(profile);
         }
       }
