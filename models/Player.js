@@ -105,6 +105,7 @@ const PlayerSchema = new mongoose.Schema({
   birthdate: String,
   image_path: String,
   nationality: String,
+  lock: Boolean,
   team: {
     team_id: Number,
     name: String,

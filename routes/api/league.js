@@ -196,7 +196,7 @@ router.post(
 );
 
 // @route   GET api/league/:leagueId
-// @desc    Get users league
+// @desc    Get the user's league
 // @access  Private
 router.get("/:leagueId", auth, async (req, res) => {
   try {
@@ -216,4 +216,145 @@ router.get("/:leagueId", auth, async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
+// @route   GET api/league/rosters/lock/check
+// @desc    Update the league players stats (lock/unlock)
+// @access  Private
+router.get(
+  "/rosters/lock/check",
+  [auth, [check("league_id", "Please include a league ID").exists()]],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log(errors.array());
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const league_id = req.query.league_id;
+
+    try {
+      const league = await League.findOne({
+        _id: league_id,
+      });
+
+      for (let i = 0; i < league.participants.length; i++) {
+        if (
+          league.participants[i].user.equals(
+            mongoose.Types.ObjectId(req.user.id)
+          )
+        ) {
+          for (let j = 0; j < league.participants[i].team.length; j++) {
+            const player = await Player.findOne({
+              player_id: league.participants[i].team[j].player_id,
+            });
+            league.participants[i].team[j].lock = player.lock;
+          }
+          break;
+        }
+      }
+      await league.save();
+      return res.json(league);
+    } catch (err) {
+      res.status(500).send("Server Error");
+    }
+  }
+);
+
+// @route   POST api/league/player/add/:id
+// @desc    Add new player to team
+// @access  Private
+router.post(
+  "/player/add/:id",
+  [auth, [check("league_id", "Please include a league ID").exists()]],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { league_id } = req.body;
+    const player_id = req.params.id;
+    const user_id = req.user.id;
+
+    try {
+      let league = await League.findOne({ _id: league_id });
+
+      let found = false;
+      // Check to see if the player is taken from another player
+      for (let i = 0; i < league.participants.length; i++) {
+        for (let j = 0; j < league.participants[i].team.length; j++) {
+          if (player_id == league.participants[i].team[j].player_id) {
+            found = true;
+            break;
+          }
+        }
+      }
+      if (found) {
+        return res
+          .status(400)
+          .json({ errors: [{ msg: "Player is already added on a team" }] });
+      }
+
+      // Add player to team
+      for (let i = 0; i < league.participants.length; i++) {
+        if (
+          league.participants[i].user.equals(mongoose.Types.ObjectId(user_id))
+        ) {
+          let player = await Player.findOne({ player_id: player_id });
+          delete player.fixtures;
+          league.participants[i].team.push(player);
+          break;
+        }
+      }
+      await league.save();
+      res.send(league);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Server Error");
+    }
+  }
+);
+
+// @route   POST api/league/player/drop/:id
+// @desc    Drop new player to team
+// @access  Private
+router.post(
+  "/player/drop/:id",
+  [auth, [check("league_id", "Please include a league ID").exists()]],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { league_id } = req.body;
+    const player_id = req.params.id;
+    const user_id = req.user.id;
+
+    try {
+      let league = await League.findOne({ _id: league_id });
+
+      // Drop player to team
+      for (let i = 0; i < league.participants.length; i++) {
+        if (
+          league.participants[i].user.equals(mongoose.Types.ObjectId(user_id))
+        ) {
+          for (let j = 0; j < league.participants[i].team.length; j++) {
+            if (league.participants[i].team[j].player_id == player_id) {
+              league.participants[i].team.splice(j, 1);
+              console.log(player_id);
+              break;
+            }
+          }
+          break;
+        }
+      }
+      await league.save();
+      res.send(league);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Server Error");
+    }
+  }
+);
 module.exports = router;

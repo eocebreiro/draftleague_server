@@ -1,9 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/auth");
+const { check, validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const NewPlayer = require("../../models/Player").NewPlayer;
 const Player = require("../../models/Player").Player;
+const League = require("../../models/Leagues");
+const {
+  faPersonMilitaryToPerson,
+} = require("@fortawesome/free-solid-svg-icons");
 
 // @route   GET api/players/new
 // @desc    Get new players for the week
