@@ -285,6 +285,7 @@ router.post(
       let league = await League.findOne({ _id: league_id });
 
       let found = false;
+
       // Check to see if the player is taken from another player
       for (let i = 0; i < league.participants.length; i++) {
         for (let j = 0; j < league.participants[i].team.length; j++) {
@@ -297,7 +298,7 @@ router.post(
       if (found) {
         return res
           .status(400)
-          .json({ errors: [{ msg: "Player is already added on a team" }] });
+          .json({ errors: [{ msg: "Player is already on a team" }] });
       }
 
       // Add player to team
@@ -305,8 +306,40 @@ router.post(
         if (
           league.participants[i].user.equals(mongoose.Types.ObjectId(user_id))
         ) {
+          // Check to see if there is room for the player to be added
+          if (league.participants[i].team.length >= league.numOfPlayers) {
+            return res.status(400).json({
+              errors: [
+                {
+                  msg: "Your roster is full. Please drop a player before adding a new one",
+                },
+              ],
+            });
+          }
+
           let player = await Player.findOne({ player_id: player_id });
           delete player.fixtures;
+          // Check to see if the player being added is a GK and
+          //If so, only add if the participant has less than 2 keepers (max 2 keepers per team)
+          if (player.position_id === 1) {
+            // 1 is goalkeepr
+            let keeperCount = 0;
+            for (j = 0; j < league.participants[i].team.length; j++) {
+              if (league.participants[i].team[j].position_id === 1) {
+                keeperCount++;
+              }
+            }
+            if (keeperCount >= 2) {
+              return res.status(400).json({
+                errors: [
+                  {
+                    msg: "You can only have a maxium of 2 goalkeepers",
+                  },
+                ],
+              });
+            }
+          }
+
           league.participants[i].team.push(player);
           break;
         }
