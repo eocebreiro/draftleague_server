@@ -23,6 +23,10 @@ router.post(
         "numOfParticipants",
         "Number of participants should be between 4 to 16 players."
       ).isNumeric({ min: 4, max: 16 }),
+      check(
+        "numOfPlayers",
+        "Number of players should be between 11 to 20 players."
+      ).isNumeric({ min: 11, max: 20 }),
     ],
   ],
   async (req, res) => {
@@ -31,12 +35,13 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
     //Build a new league object
-    const { leaguename, numOfParticipants } = req.body;
+    const { leaguename, numOfParticipants, numOfPlayers } = req.body;
     const leagueFields = {};
 
     leagueFields.admin = req.user.id;
     if (leaguename) leagueFields.leaguename = leaguename;
     if (numOfParticipants) leagueFields.numOfParticipants = numOfParticipants; // create new league
+    if (numOfPlayers) leagueFields.numOfPlayers = numOfPlayers;
 
     // Get the list of players
 

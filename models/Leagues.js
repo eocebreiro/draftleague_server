@@ -68,6 +68,11 @@ const LeagueSchema = new mongoose.Schema({
     required: true,
     options: { min: 4, max: 16 },
   },
+  numOfPlayers: {
+    type: Number,
+    required: true,
+    options: { min: 11, max: 20 },
+  },
   participants: [partSchema],
 
   leagueId: {
