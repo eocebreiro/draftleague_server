@@ -93,6 +93,23 @@ const dataSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const ownershipSchema = new mongoose.Schema(
+  {
+    league_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "leagues",
+      require: true,
+    },
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      require: true,
+    },
+    date: { type: Date, defualt: Date.now, require: true },
+  },
+  { _id: false }
+);
+
 const PlayerSchema = new mongoose.Schema({
   player_id: Number,
   position_id: Number,
@@ -112,6 +129,7 @@ const PlayerSchema = new mongoose.Schema({
     short_code: String,
     logo_path: String,
   },
+  ownership: [ownershipSchema],
   data: [dataSchema],
 });
 

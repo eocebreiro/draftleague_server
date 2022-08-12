@@ -1,33 +1,6 @@
 const mongoose = require("mongoose");
 const shortid = require("shortid");
 
-const teamSchema = new mongoose.Schema(
-  {
-    player_id: Number,
-    position_id: Number,
-    common_name: String,
-    display_name: String,
-    fullname: String,
-    firstname: String,
-    lastname: String,
-    nationality: String,
-    birthdate: String,
-    image_path: String,
-    nationality: String,
-    position: String,
-    lock: Boolean,
-    team: {
-      team_id: Number,
-      name: String,
-      short_code: String,
-      logo_path: String,
-    },
-
-    date_added: { type: Date, default: Date.now() },
-  },
-  { _id: false }
-);
-
 const partSchema = new mongoose.Schema(
   {
     user: {
@@ -36,7 +9,6 @@ const partSchema = new mongoose.Schema(
     },
     date: { type: Date, defualt: Date.now },
     teamname: { type: String },
-    team: [teamSchema],
   },
   { _id: false }
 );
@@ -95,8 +67,6 @@ const LeagueSchema = new mongoose.Schema({
     default: null,
   },
   schedule: [scheduleSchema],
-
-  playerList: [],
 
   date: {
     type: Date,

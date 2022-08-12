@@ -222,6 +222,22 @@ router.get("/:leagueId", auth, async (req, res) => {
   }
 });
 
+// @route   GET api/league/:leagueId/roster/:playerId
+// @desc    Get any player's roster
+// @access  Private
+router.get("/:leagueId/roster/:userId", auth, async (req, res) => {
+  try {
+    const players = await Player.find({
+      "ownership.user_id": mongoose.Types.ObjectId(req.params.userId),
+      "ownership.league_id": mongoose.Types.ObjectId(req.params.leagueId),
+    });
+    return res.json(players);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 // @route   GET api/league/rosters/lock/check
 // @desc    Update the league players stats (lock/unlock)
 // @access  Private
@@ -248,11 +264,11 @@ router.get(
             mongoose.Types.ObjectId(req.user.id)
           )
         ) {
-          for (let j = 0; j < league.participants[i].team.length; j++) {
+          for (let j = 0; j < league.participants[i].roster.length; j++) {
             const player = await Player.findOne({
-              player_id: league.participants[i].team[j].player_id,
+              player_id: league.participants[i].roster[j].player_id,
             });
-            league.participants[i].team[j].lock = player.lock;
+            league.participants[i].roster[j].lock = player.lock;
           }
           break;
         }
@@ -282,70 +298,72 @@ router.post(
     const user_id = req.user.id;
 
     try {
-      let league = await League.findOne({ _id: league_id });
+      let player = await Player.findOne({ player_id: player_id });
 
-      let found = false;
-
-      // Check to see if the player is taken from another player
-      for (let i = 0; i < league.participants.length; i++) {
-        for (let j = 0; j < league.participants[i].team.length; j++) {
-          if (player_id == league.participants[i].team[j].player_id) {
-            found = true;
-            break;
-          }
-        }
-      }
-      if (found) {
+      // Check to see if player is locked
+      if (player.lock) {
         return res
           .status(400)
-          .json({ errors: [{ msg: "Player is already on a team" }] });
+          .json({ errors: [{ msg: "Player is locked for the week" }] });
       }
 
-      // Add player to team
-      for (let i = 0; i < league.participants.length; i++) {
+      // Check to see if player is taken or avalible
+      for (let i = 0; i < player.ownership.length; i++) {
         if (
-          league.participants[i].user.equals(mongoose.Types.ObjectId(user_id))
+          player.ownership[i].league_id.equals(
+            mongoose.Types.ObjectId(league_id)
+          )
         ) {
-          // Check to see if there is room for the player to be added
-          if (league.participants[i].team.length >= league.numOfPlayers) {
-            return res.status(400).json({
-              errors: [
-                {
-                  msg: "Your roster is full. Please drop a player before adding a new one",
-                },
-              ],
-            });
-          }
-
-          let player = await Player.findOne({ player_id: player_id });
-          delete player.fixtures;
-          // Check to see if the player being added is a GK and
-          //If so, only add if the participant has less than 2 keepers (max 2 keepers per team)
-          if (player.position_id === 1) {
-            // 1 is goalkeepr
-            let keeperCount = 0;
-            for (j = 0; j < league.participants[i].team.length; j++) {
-              if (league.participants[i].team[j].position_id === 1) {
-                keeperCount++;
-              }
-            }
-            if (keeperCount >= 2) {
-              return res.status(400).json({
-                errors: [
-                  {
-                    msg: "You can only have a maxium of 2 goalkeepers",
-                  },
-                ],
-              });
-            }
-          }
-
-          league.participants[i].team.push(player);
-          break;
+          return res
+            .status(400)
+            .json({ errors: [{ msg: "Player is already on a team" }] });
         }
       }
-      await league.save();
-      res.send(league);
+
+      let league = await League.findOne({ league_id: league_id });
+
+      const roster = await Player.find({
+        "ownership.user_id": mongoose.Types.ObjectId(user_id),
+        "ownership.league_id": mongoose.Types.ObjectId(league_id),
+      });
+
+      // Check to see if there is room to add the player to the roster
+      if (roster.length >= league.numOfPlayers) {
+        return res.status(400).json({
+          errors: [
+            {
+              msg: "You're team is full. Drop a player before adding a new one",
+            },
+          ],
+        });
+      }
+
+      // (League Rules: 2 keeper per team)
+      // Check to see if this rule is violated
+
+      let goalkeeperCount = 0;
+      for (let i = 0; i < roster.length; i++) {
+        if (roster[i].position_id == 1) {
+          goalkeeperCount++;
+        }
+      }
+      if (goalkeeperCount >= 2) {
+        return res.status(400).json({
+          errors: [
+            {
+              msg: "You have the maximun number of goalkeepers (2). Drop a goalkeeper before adding a new one",
+            },
+          ],
+        });
+      }
+
+      // Add player to league
+      player.ownership.push({ league_id: league_id, user_id: user_id });
+
+      await player.save();
+      const players = await Player.find();
+
+      res.send(players);
     } catch (err) {
       console.error(err.message);
       res.status(500).send("Server Error");
@@ -370,25 +388,42 @@ router.post(
     const user_id = req.user.id;
 
     try {
-      let league = await League.findOne({ _id: league_id });
+      let player = await Player.findOne({ player_id: player_id });
 
-      // Drop player to team
-      for (let i = 0; i < league.participants.length; i++) {
+      // Check to see if player is locked
+      if (player.lock) {
+        return res
+          .status(400)
+          .json({ errors: [{ msg: "Player is locked for the week" }] });
+      }
+
+      // If player is on the user's team, drop the player
+
+      for (let i = 0; i < player.ownership.length; i++) {
         if (
-          league.participants[i].user.equals(mongoose.Types.ObjectId(user_id))
+          player.ownership[i].user_id.equals(
+            mongoose.Types.ObjectId(user_id)
+          ) &&
+          player.ownership[i].league_id.equals(
+            mongoose.Types.ObjectId(league_id)
+          )
         ) {
-          for (let j = 0; j < league.participants[i].team.length; j++) {
-            if (league.participants[i].team[j].player_id == player_id) {
-              league.participants[i].team.splice(j, 1);
-              console.log(player_id);
-              break;
-            }
-          }
+          player.ownership.splice(i, 1);
           break;
         }
       }
-      await league.save();
-      res.send(league);
+
+      // delete from league as well
+      let league = await League.findOne({ league_id: league_id });
+
+      await player.save();
+
+      // Get updated roster list
+      const roster = await Player.find({
+        "ownership.user_id": mongoose.Types.ObjectId(user_id),
+        "ownership.league_id": mongoose.Types.ObjectId(league_id),
+      });
+      res.send(roster);
     } catch (err) {
       console.error(err.message);
       res.status(500).send("Server Error");
