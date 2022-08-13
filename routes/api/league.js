@@ -158,12 +158,14 @@ router.post(
                     teamname: half1[j].teamname,
                     logo_path: null,
                     score: null,
+                    lineup: [],
                   },
                   team_two: {
                     user_id: half2[j].user,
                     teamname: half2[j].teamname,
                     logo_path: null,
                     score: null,
+                    lineup: [],
                   },
                   standings: {
                     team_one_position: null,
