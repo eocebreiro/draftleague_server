@@ -1,3 +1,4 @@
+const { ObjectId } = require("mongodb");
 const mongoose = require("mongoose");
 const shortid = require("shortid");
 
@@ -14,8 +15,20 @@ const partSchema = new mongoose.Schema(
 );
 const dataSchema = new mongoose.Schema({
   winner_team_id: Number,
-  team_one: {},
-  team_two: {},
+  team_one: {
+    user_id: ObjectId,
+    teamname: String,
+    logo_path: String,
+    score: Number,
+    lineup: [],
+  },
+  team_two: {
+    user_id: ObjectId,
+    teamname: String,
+    logo_path: String,
+    score: Number,
+    lineup: [],
+  },
   standings: {},
 });
 const scheduleSchema = new mongoose.Schema({

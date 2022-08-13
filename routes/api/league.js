@@ -243,6 +243,7 @@ router.get("/:leagueId/roster/:userId", auth, async (req, res) => {
 // @route   GET api/league/rosters/lock/check
 // @desc    Update the league players stats (lock/unlock)
 // @access  Private
+// Delete? Not needed?
 router.get(
   "/rosters/lock/check",
   [auth, [check("league_id", "Please include a league ID").exists()]],
@@ -284,7 +285,7 @@ router.get(
 );
 
 // @route   POST api/league/player/add/:id
-// @desc    Add new player to team
+// @desc    Add player to team roster
 // @access  Private
 router.post(
   "/player/add/:id",
@@ -322,7 +323,9 @@ router.post(
         }
       }
 
-      let league = await League.findOne({ league_id: league_id });
+      let league = await League.findOne({
+        _id: mongoose.Types.ObjectId(league_id),
+      });
 
       const roster = await Player.find({
         "ownership.user_id": mongoose.Types.ObjectId(user_id),
@@ -342,23 +345,23 @@ router.post(
 
       // (League Rules: 2 keeper per team)
       // Check to see if this rule is violated
-
-      let goalkeeperCount = 0;
-      for (let i = 0; i < roster.length; i++) {
-        if (roster[i].position_id == 1) {
-          goalkeeperCount++;
+      if (player.position_id === 1) {
+        let goalkeeperCount = 0;
+        for (let i = 0; i < roster.length; i++) {
+          if (roster[i].position_id == 1) {
+            goalkeeperCount++;
+          }
+        }
+        if (goalkeeperCount >= 2) {
+          return res.status(400).json({
+            errors: [
+              {
+                msg: "You have the maximun number of goalkeepers (2). Drop a goalkeeper before adding a new one",
+              },
+            ],
+          });
         }
       }
-      if (goalkeeperCount >= 2) {
-        return res.status(400).json({
-          errors: [
-            {
-              msg: "You have the maximun number of goalkeepers (2). Drop a goalkeeper before adding a new one",
-            },
-          ],
-        });
-      }
-
       // Add player to league
       player.ownership.push({ league_id: league_id, user_id: user_id });
 
@@ -374,7 +377,7 @@ router.post(
 );
 
 // @route   POST api/league/player/drop/:id
-// @desc    Drop new player to team
+// @desc    Drop player from team roster
 // @access  Private
 router.post(
   "/player/drop/:id",
@@ -415,9 +418,6 @@ router.post(
         }
       }
 
-      // delete from league as well
-      let league = await League.findOne({ league_id: league_id });
-
       await player.save();
 
       // Get updated roster list
@@ -432,4 +432,263 @@ router.post(
     }
   }
 );
+
+// @route   POST api/league/player/lineup/:id
+// @desc    Add player from roster to current week's lineup
+// @access  Private
+router.post("/:leagueId/player/lineup/:playerId", auth, async (req, res) => {
+  const league_id = req.params.leagueId;
+  const player_id = req.params.playerId;
+  const user_id = req.user.id;
+
+  try {
+    let player = await Player.findOne({ player_id: player_id }).lean();
+
+    // Check to see if player is locked
+    if (player.lock) {
+      return res
+        .status(400)
+        .json({ errors: [{ msg: "Player is locked for the week" }] });
+    }
+
+    let league = await League.findOne({
+      _id: mongoose.Types.ObjectId(league_id),
+    });
+
+    // get schedule index
+    let scheduleIndex;
+    for (let i = 0; i < league.schedule.length; i++) {
+      if (league.schedule[i].active) {
+        scheduleIndex = i;
+        break;
+      }
+    }
+
+    // get data (fixture) index;
+    let dataIndex;
+    let team;
+    for (let i = 0; i < league.schedule[scheduleIndex].data.length; i++) {
+      if (
+        league.schedule[scheduleIndex].data[i].team_one.user_id.equals(
+          mongoose.Types.ObjectId(user_id)
+        )
+      ) {
+        team = "team_one";
+        dataIndex = i;
+        break;
+      }
+      if (
+        league.schedule[scheduleIndex].data[i].team_two.user_id.equals(
+          mongoose.Types.ObjectId(user_id)
+        )
+      ) {
+        team = "team_two";
+        dataIndex = i;
+      }
+    }
+
+    // Lineup short hand
+    let lineup = league.schedule[scheduleIndex].data[dataIndex][team].lineup;
+
+    // Check to see if lineup is full
+    if (lineup.length === 11) {
+      return res.status(400).json({
+        errors: [
+          {
+            msg: "You're team is full. Drop a player from your lineup before adding a new one",
+          },
+        ],
+      });
+    }
+
+    // Check to see if there is room to add the player to the lineup based on their position
+
+    // Count the number of players per position
+    let keeperCount = 0;
+    let defCount = 0;
+    let midCount = 0;
+    let fwdCount = 0;
+
+    let keeperMax = false;
+    let defMin = false;
+    let defMax = false;
+    let midMin = false;
+    let midMax = false;
+    let fwdMin = false;
+    let fwdMax = false;
+
+    for (let i = 0; i < lineup.length; i++) {
+      if (lineup[i].position_id === 1) {
+        keeperCount++;
+      } else if (lineup[i].position_id === 2) {
+        defCount++;
+      } else if (lineup[i].position_id === 3) {
+        midCount++;
+      } else if (lineup[i].position_id === 4) {
+        fwdCount++;
+      }
+    }
+
+    if (keeperCount === 1) {
+      keeperMax = true;
+    }
+    if (defCount >= 3) {
+      defMin = true;
+    }
+    if (defCount === 5) {
+      defMax = true;
+    }
+    if (midCount >= 3) {
+      midMin = true;
+    }
+    if (midCount === 5) {
+      midMax = true;
+    }
+    if (fwdCount >= 1) {
+      fwdMin = true;
+    }
+    if (fwdCount === 3) {
+      fwdMax = true;
+    }
+
+    if (player.position_id === 1) {
+      if (keeperMax) {
+        return res.status(400).json({
+          errors: [
+            {
+              msg: "Invalid formation",
+            },
+          ],
+        });
+      }
+    }
+    if (player.position_id === 2) {
+      if (defMax) {
+        return res.status(400).json({
+          errors: [
+            {
+              msg: "Invalid formation",
+            },
+          ],
+        });
+      }
+    }
+    if (player.position_id === 3) {
+      if (midMax) {
+        return res.status(400).json({
+          errors: [
+            {
+              msg: "Invalid formation",
+            },
+          ],
+        });
+      }
+    }
+    if (player.position_id === 4) {
+      if (fwdMax) {
+        return res.status(400).json({
+          errors: [
+            {
+              msg: "Invalid formation",
+            },
+          ],
+        });
+      }
+    }
+
+    // Check valid formation when adding the last player to lineup
+    if (defCount + midCount + fwdCount === 9) {
+      if (player.position_id === 2) {
+        if (!midMin || !fwdMin) {
+          return res.status(400).json({
+            errors: [
+              {
+                msg: "Invalid formation",
+              },
+            ],
+          });
+        }
+      }
+      if (player.position_id === 3) {
+        if (!defMin || !fwdMin) {
+          return res.status(400).json({
+            errors: [
+              {
+                msg: "Invalid formation",
+              },
+            ],
+          });
+        }
+      }
+      if (player.position_id === 4) {
+        if (!midMin || !defMin) {
+          return res.status(400).json({
+            errors: [
+              {
+                msg: "Invalid formation",
+              },
+            ],
+          });
+        }
+      }
+    }
+
+    // Check valid formation when adding the second to last player to lineup
+    if (defCount + midCount + fwdCount === 8) {
+      if (player.position_id === 2) {
+        if (midCount === 1 || (midCount === 2 && fwdCount === 0)) {
+          return res.status(400).json({
+            errors: [
+              {
+                msg: "Invalid formation",
+              },
+            ],
+          });
+        }
+      }
+      if (player.position_id === 3) {
+        if (defCount === 1 || (defCount === 2 && fwdCount === 0)) {
+          return res.status(400).json({
+            errors: [
+              {
+                msg: "Invalid formation",
+              },
+            ],
+          });
+        }
+      }
+      if (player.position_id === 4) {
+        if (
+          midCount === 1 ||
+          defCount === 1 ||
+          (midCount === 2 && defCount === 2)
+        ) {
+          return res.status(400).json({
+            errors: [
+              {
+                msg: "Invalid formation",
+              },
+            ],
+          });
+        }
+      }
+    }
+
+    /// COME BACK TO BELOW
+
+    // Add player to league lineup
+    delete player.ownership;
+    delete player.data;
+    delete player.fixtures;
+    delete player.lock;
+    league.schedule[scheduleIndex].data[dataIndex][team].lineup.push(player);
+
+    await league.save();
+    res.send(league);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 module.exports = router;
