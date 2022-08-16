@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const dataSchema = new mongoose.Schema(
   {
     week: Number,
+    active: Boolean,
     fixture_id: Number,
     played: Boolean,
     home: Boolean,
