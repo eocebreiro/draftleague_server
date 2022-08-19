@@ -3,8 +3,6 @@ const app = express();
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 
-const connectDB = require("./config/db");
-
 //Routes
 const userRoutes = require("./routes/api/users");
 const authRoutes = require("./routes/api/auth");
@@ -21,7 +19,14 @@ app.use(morgan("dev"));
 app.use(express.json({ extended: false }));
 
 //Connect to the database
-connectDB();
+try {
+  await mongoose.connect(process.env.mongoURI, { useNewUrlParser: true });
+  console.log("MongoDB Connected...");
+} catch (err) {
+  console.error(err.message);
+  // Exit process with failure
+  process.exit(1);
+}
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
