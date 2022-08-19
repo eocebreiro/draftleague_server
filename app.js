@@ -22,7 +22,7 @@ app.use(express.json({ extended: false }));
 
 //Connect to the database
 try {
-  mongoose.connect(process.env.mongoURI, { useNewUrlParser: true });
+  mongoose.connect(process.env.MONGOURI, { useNewUrlParser: true });
   console.log("MongoDB Connected...");
 } catch (err) {
   console.error(err.message);
