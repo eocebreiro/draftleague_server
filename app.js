@@ -46,9 +46,6 @@ app.use("/api/leagues", leaguesRoutes);
 app.use("/api/players", playersRoutes);
 app.use("/api/player", playerRoutes);
 app.use("/api/data", dataRoutes);
-app.get("/", (req, res) => {
-  res.send("Hello");
-});
 // Error 404
 app.use((req, res, next) => {
   const error = new Error("Not Found (404)");
