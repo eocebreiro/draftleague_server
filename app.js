@@ -10,6 +10,7 @@ const userRoutes = require("./routes/api/users");
 const authRoutes = require("./routes/api/auth");
 const profileRoutes = require("./routes/api/profile");
 const leagueRoutes = require("./routes/api/league");
+const leaguesRoutes = require("./routes/api/leagues");
 const playersRoutes = require("./routes/api/players");
 const playerRoutes = require("./routes/api/player");
 const fixturesRoutes = require("./routes/api/fixtures");
@@ -41,9 +42,13 @@ app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/fixtures", fixturesRoutes);
 app.use("/api/league", leagueRoutes);
+app.use("/api/leagues", leaguesRoutes);
 app.use("/api/players", playersRoutes);
 app.use("/api/player", playerRoutes);
 app.use("/api/data", dataRoutes);
+app.get("/", (req, res) => {
+  res.send("Hello");
+});
 // Error 404
 app.use((req, res, next) => {
   const error = new Error("Not Found (404)");

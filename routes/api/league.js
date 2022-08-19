@@ -142,12 +142,11 @@ router.post(
               }
             }
             // Assign scheudle
-            console.log("num of weeks");
             console.log(numofWeeks);
-            console.log("actjive weeks");
             console.log(activeWeek);
 
-            // DEV MODE FIX THIS NEXT change 29 to numOfWeeks
+            // DEV MODE FIX THIS NEXT change 29 to numOfWeeks    //*************************************************************************************DEV MODE OFF
+            //for (let i = 18; i <= 29; i++) {
             for (let i = activeWeek; i <= 29; i++) {
               let data = [];
               for (let j = 0; j < half1.length; j++) {
@@ -183,7 +182,6 @@ router.post(
 
               schedule.push({
                 week: i,
-                active: false,
                 data: data,
               });
             }
@@ -203,21 +201,17 @@ router.post(
 );
 
 // @route   GET api/league/:leagueId
-// @desc    Get the user's league
-// @access  Private
-router.get("/:leagueId", auth, async (req, res) => {
+// @desc    Get the user's specific league
+// @access  Public
+router.get("/:leagueId", async (req, res) => {
+  const league_id = req.params.leagueId;
+
   try {
     const league = await League.findOne({
-      _id: mongoose.Types.ObjectId(req.params.leagueId),
+      _id: mongoose.Types.ObjectId(league_id),
     });
-    for (let l = 0; l < league.participants.length; l++) {
-      if (
-        league.participants[l].user.equals(mongoose.Types.ObjectId(req.user.id))
-      ) {
-        return res.json(league);
-      }
-    }
-    return res.status(400).json({ msg: "There is no league for this user" });
+
+    return res.json(league);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
@@ -361,6 +355,60 @@ router.post("/:leagueId/roster/drop/:playerId", auth, async (req, res) => {
       }
     }
 
+    // Also drop the player from the lineup if they are on one.
+    let league = await League.findOne({ league_id: league_id });
+
+    for (let i = 0; i < league.schedule.length; i++) {
+      if (league.schedule[i].week === league.activeWeek) {
+        for (let j = 0; j < league.schedule[i].data.length; j++) {
+          if (
+            league.schedule[i].data[j].team_one.user_id.equals(
+              mongoose.Types.ObjectId(user_id)
+            )
+          ) {
+            for (
+              let k = 0;
+              k < league.schedule[i].data[j].team_one.lineup.length;
+              k++
+            ) {
+              if (
+                league.schedule[i].data[j].team_one.lineup[k].player_id ==
+                player_id
+              ) {
+                league.schedule[i].data[j].team_one.lineup.splice(k, 1);
+
+                break;
+              }
+            }
+            break;
+          }
+          if (
+            league.schedule[i].data[j].team_two.user_id.equals(
+              mongoose.Types.ObjectId(user_id)
+            )
+          ) {
+            for (
+              let k = 0;
+              k < league.schedule[i].data[j].team_two.lineup.length;
+              k++
+            ) {
+              if (
+                league.schedule[i].data[j].team_two.lineup[k].player_id ==
+                player_id
+              ) {
+                league.schedule[i].data[j].team_two.lineup.splice(k, 1);
+                console.log("spiceS");
+                break;
+              }
+            }
+            break;
+          }
+        }
+        break;
+      }
+    }
+    await league.save();
+
     await player.save();
 
     // Get updated roster list
@@ -400,7 +448,7 @@ router.post("/:leagueId/lineup/add/:playerId", auth, async (req, res) => {
     // get schedule index
     let scheduleIndex;
     for (let i = 0; i < league.schedule.length; i++) {
-      if (league.schedule[i].active) {
+      if (league.schedule[i].week === league.activeWeek) {
         scheduleIndex = i;
         break;
       }
@@ -471,6 +519,9 @@ router.post("/:leagueId/lineup/add/:playerId", auth, async (req, res) => {
       }
     }
 
+    // count inner field players (everyone but keeper)
+    let innerField = defCount + midCount + fwdCount;
+
     if (keeperCount === 1) {
       keeperMax = true;
     }
@@ -536,6 +587,16 @@ router.post("/:leagueId/lineup/add/:playerId", auth, async (req, res) => {
           ],
         });
       }
+    }
+
+    if (player.position_id !== 1 && innerField === 10) {
+      return res.status(400).json({
+        errors: [
+          {
+            msg: "Invalid formation",
+          },
+        ],
+      });
     }
 
     // Check valid formation when adding the last player to lineup
@@ -658,7 +719,7 @@ router.post("/:leagueId/lineup/drop/:playerId", auth, async (req, res) => {
     // get schedule index
     let scheduleIndex;
     for (let i = 0; i < league.schedule.length; i++) {
-      if (league.schedule[i].active) {
+      if (league.schedule[i].week === league.activeWeek) {
         scheduleIndex = i;
         break;
       }
@@ -729,7 +790,7 @@ router.get("/:leagueId/lineup/:userId", auth, async (req, res) => {
     let players = [];
 
     for (let i = 0; i < league.schedule.length; i++) {
-      if (league.schedule[i].active) {
+      if (league.schedule[i].week === league.activeWeek) {
         for (let j = 0; j < league.schedule[i].data.length; j++) {
           if (
             league.schedule[i].data[j].team_one.user_id.equals(
@@ -754,11 +815,30 @@ router.get("/:leagueId/lineup/:userId", auth, async (req, res) => {
 
     const lineup = [];
     for (let i = 0; i < players.length; i++) {
-      let player = await Player.findOne({ player_id: players[i].player_id });
+      let player = await Player.findOne({
+        player_id: players[i].player_id,
+      }).lean();
       lineup.push(player);
     }
-
+    console.log(lineup[10]);
     res.send(lineup);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+// @route   GET api/league/
+// @desc    Get all leagues from a user
+// @access  Private
+router.get("/", auth, async (req, res) => {
+  const user_id = req.user.id;
+  try {
+    const leagues = await League.find({
+      "participants.user": mongoose.Types.ObjectId(user_id),
+    });
+
+    res.send(leagues);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");

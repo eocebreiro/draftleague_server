@@ -10,85 +10,87 @@ const dataSchema = new mongoose.Schema(
     opponent_name: String,
     opponent_short_code: String,
     opponent_logo_path: String,
-    minutes: {
-      data: Number,
-      score: Number,
-    },
-    goals: {
-      data: Number,
-      score: Number,
-    },
-    assists: {
-      data: Number,
-      score: Number,
-    },
-    cleansheet: {
-      data: Number,
-      score: Number,
-    },
-    pen_saved: {
-      data: Number,
-      score: Number,
-    },
-    pen_won: {
-      data: Number,
-      score: Number,
-    },
-    pen_missed: {
-      data: Number,
-      score: Number,
-    },
-    goals_conceded: {
-      data: Number,
-      score: Number,
-    },
-    saves: {
-      data: Number,
-      score: Number,
-    },
-    yellow_card: {
-      data: Number,
-      score: Number,
-    },
-    red_card: {
-      data: Number,
-      score: Number,
-    },
-    own_goal: {
-      data: Number,
-      score: Number,
-    },
-    tackles: {
-      data: Number,
-      score: Number,
-    },
-    passes: {
-      data: Number,
-      score: Number,
-    },
-    key_passes: {
-      data: Number,
-      score: Number,
-    },
-    crosses_accuracy: {
-      data: Number,
-      score: Number,
-    },
-    clearance: {
-      data: Number,
-      score: Number,
-    },
-    blocks: {
-      data: Number,
-      score: Number,
-    },
-    shots: {
-      data: Number,
-      score: Number,
-    },
-    fouls_drawn: {
-      data: Number,
-      score: Number,
+    stats: {
+      minutes: {
+        data: Number,
+        score: Number,
+      },
+      goals: {
+        data: Number,
+        score: Number,
+      },
+      assists: {
+        data: Number,
+        score: Number,
+      },
+      cleansheet: {
+        data: Number,
+        score: Number,
+      },
+      pen_saved: {
+        data: Number,
+        score: Number,
+      },
+      pen_won: {
+        data: Number,
+        score: Number,
+      },
+      pen_missed: {
+        data: Number,
+        score: Number,
+      },
+      goals_conceded: {
+        data: Number,
+        score: Number,
+      },
+      saves: {
+        data: Number,
+        score: Number,
+      },
+      yellow_card: {
+        data: Number,
+        score: Number,
+      },
+      red_card: {
+        data: Number,
+        score: Number,
+      },
+      own_goal: {
+        data: Number,
+        score: Number,
+      },
+      tackles: {
+        data: Number,
+        score: Number,
+      },
+      passes: {
+        data: Number,
+        score: Number,
+      },
+      key_passes: {
+        data: Number,
+        score: Number,
+      },
+      crosses_accuracy: {
+        data: Number,
+        score: Number,
+      },
+      clearance: {
+        data: Number,
+        score: Number,
+      },
+      blocks: {
+        data: Number,
+        score: Number,
+      },
+      shots: {
+        data: Number,
+        score: Number,
+      },
+      fouls_drawn: {
+        data: Number,
+        score: Number,
+      },
     },
   },
   { _id: false }
@@ -131,7 +133,7 @@ const PlayerSchema = new mongoose.Schema({
     logo_path: String,
   },
   ownership: [ownershipSchema],
-  data: [dataSchema],
+  fixtures: [dataSchema],
 });
 
 module.exports = {

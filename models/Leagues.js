@@ -13,8 +13,22 @@ const partSchema = new mongoose.Schema(
   },
   { _id: false }
 );
+const rankingSchema = new mongoose.Schema({
+  week: Number,
+  players: [
+    {
+      user_id: ObjectId,
+      teamname: String,
+      total_points: Number,
+      league_points: Number,
+      wins: Number,
+      losses: Number,
+      draws: Number,
+    },
+  ],
+});
 const dataSchema = new mongoose.Schema({
-  winner_team_id: Number,
+  winner_team_id: ObjectId,
   team_one: {
     user_id: ObjectId,
     teamname: String,
@@ -33,7 +47,6 @@ const dataSchema = new mongoose.Schema({
 });
 const scheduleSchema = new mongoose.Schema({
   week: Number,
-  active: Boolean,
   data: [dataSchema],
 });
 
@@ -80,6 +93,7 @@ const LeagueSchema = new mongoose.Schema({
     default: null,
   },
   schedule: [scheduleSchema],
+  ranking: [rankingSchema],
 
   date: {
     type: Date,
