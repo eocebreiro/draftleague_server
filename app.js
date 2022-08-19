@@ -15,6 +15,7 @@ const playersRoutes = require("./routes/api/players");
 const playerRoutes = require("./routes/api/player");
 const fixturesRoutes = require("./routes/api/fixtures");
 const dataRoutes = require("./routes/api/data");
+const cors = require("cors");
 const { MONGOURI } = process.env;
 //Init Middleware
 app.use(morgan("dev"));
@@ -30,18 +31,7 @@ try {
   process.exit(1);
 }
 
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Auth-Token"
-  );
-  if (res.method === "OPTIONS") {
-    res.header("Access-Control-Allow-Methods", "PUT, POST, PATCH, DELETE, GET"); //CHECK BACK LATER
-    return res.status(200).json({});
-  }
-  next();
-});
+app.use(cors());
 
 //Routes which should handle requests
 app.use("/api/users", userRoutes);
