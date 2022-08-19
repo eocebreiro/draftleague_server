@@ -15,14 +15,14 @@ const playersRoutes = require("./routes/api/players");
 const playerRoutes = require("./routes/api/player");
 const fixturesRoutes = require("./routes/api/fixtures");
 const dataRoutes = require("./routes/api/data");
-
+const { MONGOURI } = process.env;
 //Init Middleware
 app.use(morgan("dev"));
 app.use(express.json({ extended: false }));
 
 //Connect to the database
 try {
-  mongoose.connect(process.env.MONGOURI, { useNewUrlParser: true });
+  mongoose.connect(MONGOURI, { useNewUrlParser: true });
   console.log("MongoDB Connected...");
 } catch (err) {
   console.error(err.message);
